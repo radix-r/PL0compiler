@@ -54,27 +54,12 @@ void printReg(int*);
 void printStack(int , int , int* , int );
 void printStackTrace(char [NUM_OP][CMD_LEN], int *, instruction , int , int , int , int );
 //void printStrArray(char **, int);
+void runVM(FILE *fid);
 char ** tokenize(const char *);
 
 
+/*
 int main(int argc, char **argv){
-
-  instruction code[MAX_CODE_LENGTH];
-  int codeLen; // where the number of lines of code will be recorded
-  int codeLine = 0; // current line in code[] we are at
-  int hault = 0;// set to 1 when you want the machine to stop
-  int reg[NUMREG];
-  int stack[MAX_STACK_HEIGHT];
-  char ops[NUM_OP][CMD_LEN] = {
-  "\0" , "LIT\0", "RTN\0", "LOD\0", "STO\0", "CAL\0", "INC\0", "JMP\0", "JPC\0", "SIO\0",
-  "NEQ\0", "ADD\0", "SUB\0", "MUL\0", "DIV\0", "ODD\0", "MOD\0", "EQL\0", "NEQ\0", "LSS\0",
-  "LEQ\0", "GTR\0", "GEQ\0"};
-  // special registers
-  unsigned bp; //  base pointer
-  instruction ir; // instruction register
-  unsigned pc; // program counter
-  unsigned sp; // stack pointer
-  unsigned lex;
 
   if(argc != 2){
     printf("Usage: ./pm0 <filename>\n" );
@@ -86,26 +71,13 @@ int main(int argc, char **argv){
     return -1;
   }
 
-  init(fid, code,&codeLen, &bp,&ir,&pc,&sp,&lex,reg, stack, ops);
 
+  runVM(fid);
   fclose(fid);
-
-  printf("\n OP\tRg Lx Vl[ PC BP SP]\n");
-  while(!hault){
-
-      if(fetch(&hault, code, &codeLine, codeLen, &pc, &ir)){
-        execute(ir, &sp, &bp, &pc, &lex, &hault, stack, reg);
-        hault;
-        printStackTrace(ops, stack,  ir,  pc,  bp,  sp,  lex);
-        printf("\n");
-        printReg(reg);
-      }
-
-
-  }
 
   return 0;
 }
+*/
 
 /*
 Find base L levels down
@@ -454,6 +426,45 @@ void printStackTrace(char ops[NUM_OP][CMD_LEN], int *stack, instruction ir, int 
   printf("%-4s%3d%3d%3d[%3d%3d%3d] ", ops[ir.op], ir.r, ir.l, ir.m,pc,bp,sp);
   printStack(sp, bp, stack, lex);
   fflush(stdout);
+}
+
+/**
+*/
+void runVM(FILE *fid){
+  instruction code[MAX_CODE_LENGTH];
+  int codeLen=0; // where the number of lines of code will be recorded
+  int codeLine = 0; // current line in code[] we are at
+  int hault = 0;// set to 1 when you want the machine to stop
+  int reg[NUMREG];
+  int stack[MAX_STACK_HEIGHT];
+  char ops[NUM_OP][CMD_LEN] = {
+  "\0" , "LIT\0", "RTN\0", "LOD\0", "STO\0", "CAL\0", "INC\0", "JMP\0", "JPC\0", "SIO\0",
+  "NEQ\0", "ADD\0", "SUB\0", "MUL\0", "DIV\0", "ODD\0", "MOD\0", "EQL\0", "NEQ\0", "LSS\0",
+  "LEQ\0", "GTR\0", "GEQ\0"};
+  // special registers
+  unsigned bp; //  base pointer
+  instruction ir; // instruction register
+  unsigned pc; // program counter
+  unsigned sp; // stack pointer
+  unsigned lex;
+
+  init(fid, code,&codeLen, &bp,&ir,&pc,&sp,&lex,reg, stack, ops);
+
+  printf("\n OP\tRg Lx Vl[ PC BP SP]\n");
+  while(!hault){
+
+      if(fetch(&hault, code, &codeLine, codeLen, &pc, &ir)){
+        execute(ir, &sp, &bp, &pc, &lex, &hault, stack, reg);
+        hault;
+        printStackTrace(ops, stack,  ir,  pc,  bp,  sp,  lex);
+        printf("\n");
+        printReg(reg);
+      }
+
+
+  }
+
+
 }
 
 

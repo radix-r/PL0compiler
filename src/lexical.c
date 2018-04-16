@@ -19,16 +19,12 @@ To-Do
 
 */
 
+#include "codes.h"
+#include "lexical.h"
 
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
-#define MAX_TOKEN_LEN 20
-#define MAX_NUM_LEN 5
-#define MAX_IDENTIFIER_LEN 11
 
+/*
 #define OK 0
 #define ERROR -1
 #define END 1
@@ -41,30 +37,10 @@ rparentsym, commasym, semicolonsym, periodsym, becomessym,
 beginsym, endsym, ifsym, thensym, whilesym,
 dosym, callsym, constsym, varsym, procsym,
 writesym, readsym , elsesym } token_type;
+*/
 
-typedef struct token{
-  char text[MAX_TOKEN_LEN];
-  int atribute;
-}token;
-
-typedef struct node{
-  struct node *prev;
-  struct node *next;
-  token token;
-}node;
-
-// signitures
-void chopFront(char *src,int len, int n);
-void destroyLL(node *head);
-void enqueue(node *ll, node *tail, token t);
-char * fileToStr(char * fName);
-int getToken(char ** codePtr, token *ret);
-void initLL(node ** inHead, node ** inTail);
-node * makeLexTable(char ** codePtr);
-void printLexTable(node * head);
-void printLexList(node * head);
-
-
+/*
+// for testing
 int main(int argc, char** argv){
 
   if(argc != 2){
@@ -72,30 +48,26 @@ int main(int argc, char** argv){
     return ERROR;
   }
 
-  // read file into a string
-  char* code = NULL;
-  code = fileToStr(argv[1]);
-  if(code == NULL){
-    return 0;
-  }
+  node** testLL=calloc(2, sizeof(node*));
+  initLL(&testLL[0],&testLL[1]);
+  printf("%d\n",isEmpty(testLL[0]));
 
-  fprintf(stdout, "Source Program:%s\n", argv[1]);
-  printf("%s\n", code);
+  token * test = calloc(1,sizeof(token));
+  enqueue(testLL[0],testLL[1], *test);
+  printf("%d\n",isEmpty(testLL[0]));
 
-  // build Lexeme table and Lexeme list
-  node * lexTable = NULL;
-  lexTable = makeLexTable(&code);
+  node * test2 = dequeue(testLL[0],testLL[1]);
+  printf("%d\n",isEmpty(testLL[0]));
 
-  if(lexTable != NULL){
-    printLexTable(lexTable);
-    printLexList(lexTable);
-    destroyLL(lexTable);
-  }
-  // dealocate memory
-  free(code);
-
+  destroyLL(testLL[0]);
+  free(testLL);
+  free(test2);
+  free(test);
+  //runLex(argv[1]);
 
 }
+*/
+
 
 /**
 remove n characters from front of char array
@@ -129,10 +101,31 @@ void destroyLL(node * head){
 }
 
 /**
+returns next node in queue. returns null if list empty
+*/
+node * dequeue(node *head, node* tail){
+  if(head->next == tail){
+    return NULL;
+  }
+  else{
+    node *target;
+
+
+    target = head->next;
+
+    head->next->next->prev = head;
+    head->next = head->next->next;
+
+    return target;
+
+  }
+}
+
+/**
 
 adds items to back of linked list
 */
-void enqueue(node *ll, node *tail, token t){
+void enqueue(node *head, node *tail, token t){
   node * newNode = calloc(1, sizeof(node));
 
   newNode->token = t;
@@ -153,12 +146,12 @@ doesnt check error-codes for fseek, ftell and fread
 
 bad for files > 4GB
 */
-char * fileToStr(char * fName){
+char * fileToStr(FILE * f){
 
   char * buff = 0;
   long length;
 
-  FILE* f = fopen(fName, "rb");
+  //FILE* f = fopen(fName, "rb");
 
   if(f){
     fseek (f, 0, SEEK_END);
@@ -172,7 +165,6 @@ char * fileToStr(char * fName){
     buff[length] = '\0';
   }
   else{
-    printf("Failed to open %s.\n", fName);
     return NULL;
   }
 
@@ -583,6 +575,21 @@ void initLL(node ** inHead, node ** inTail){
 }
 
 /*
+Tests if Linked list is empty
+
+@returns 1 if empty, 0 if not
+*/
+int isEmpty(node * llHead){
+  // see if the next node is the tail node
+  if(llHead->next->next == NULL){
+    return 1;
+  }
+  else{
+    return 0;
+  }
+}
+
+/*
 makes a dynamicly sized list
 
 @returns status
@@ -641,4 +648,41 @@ void printLexList(node * head){
   }
   printf("\n");
 
+}
+
+/**
+runs the lexical program
+
+@returns status code
+*/
+int runLex(char *progName){
+  FILE *fid = fopen(progName,"r");
+  if (!fid){
+    printf("Failed to open %s\n", progName);
+    return ERROR;
+  }
+
+  // read file into a string
+  char* code = NULL;
+  code = fileToStr(fid);
+  if(code == NULL){
+    return END;
+  }
+
+  fprintf(stdout, "Source Program:%s\n",progName);
+  printf("%s\n", code);
+
+  // build Lexeme table and Lexeme list
+  node * lexTable = NULL;
+  lexTable = makeLexTable(&code);
+
+  if(lexTable != NULL){
+    printLexTable(lexTable);
+    printLexList(lexTable);
+    destroyLL(lexTable);
+  }
+  // dealocate memory
+  free(code);
+
+  return END;
 }
