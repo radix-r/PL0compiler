@@ -14,7 +14,7 @@ PL/0 program is well formed (syntatically correct)
 #include <stdio.h>
 
 
-/*
+
 // for testing
 int main(int argc, char** argv){
 
@@ -22,15 +22,28 @@ int main(int argc, char** argv){
     printf("Usage: ./parse <PM0 source file>\n" );
     return ERROR;
   }
+
   // get lexem list
+  char * code = fileNameToStr(argv[1]);
+
+  if(code == NULL){
+    printf("Failed to read file");
+    return ERROR;
+  }
+
+  //printf("%s", code);
+
+  node * lexTable = NULL;
+  lexTable = makeLexTable(&code);
 
 
+  printLexTable(lexTable);
 
   //
-  parse();
+  //parse();
 
 }
-*/
+
 void parse(){
   printf("%d\n", OK);
 }

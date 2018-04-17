@@ -25,7 +25,7 @@ void chopFront(char *src,int len, int n);
 void destroyLL(node *head);
 node * dequeue(node *head, node* tail);
 void enqueue(node *ll, node *tail, token t);
-char * fileToStr(FILE *f);
+char * fileNameToStr(char *fName);
 int getToken(char ** codePtr, token *ret);
 void initLL(node ** inHead, node ** inTail);
 int isEmpty(node * llHead);

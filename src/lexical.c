@@ -24,20 +24,7 @@ To-Do
 
 
 
-/*
-#define OK 0
-#define ERROR -1
-#define END 1
 
-typedef enum {
-nulsym = 1, identsym, numbersym, plussym, minussym,
-multsym, slashsym, oddsym, eqsym, neqsym,
-lessym, leqsym,gtrsym, geqsym, lparentsym,
-rparentsym, commasym, semicolonsym, periodsym, becomessym,
-beginsym, endsym, ifsym, thensym, whilesym,
-dosym, callsym, constsym, varsym, procsym,
-writesym, readsym , elsesym } token_type;
-*/
 
 /*
 // for testing
@@ -145,13 +132,15 @@ source: https://stackoverflow.com/questions/174531/easiest-way-to-get-files-cont
 doesnt check error-codes for fseek, ftell and fread
 
 bad for files > 4GB
+
+returns NULL on failure
 */
-char * fileToStr(FILE * f){
+char * fileNameToStr(char * fName){
 
   char * buff = 0;
   long length;
 
-  //FILE* f = fopen(fName, "rb");
+  FILE* f = fopen(fName, "rb");
 
   if(f){
     fseek (f, 0, SEEK_END);
@@ -165,6 +154,7 @@ char * fileToStr(FILE * f){
     buff[length] = '\0';
   }
   else{
+    printf("Failed to open %s.\n", fName);
     return NULL;
   }
 
@@ -246,12 +236,15 @@ int getToken(char ** codePtr, token * ret){
         else if(c == ':'){
           state = 39;
         }
+        else if(c == '%'){
+          state = 41;
+        }
         else if(c == '\0'){
           // end of file reached
           return END;
         }
         else{
-          printf("Error: Invalid symbol.");
+          printf("Error: Invalid symbol: %c\n",c);
           return ERROR;
         }
 
@@ -498,6 +491,11 @@ int getToken(char ** codePtr, token * ret){
         token.atribute = becomessym;
         found = 1;
         break;
+
+      case 41: // %
+        token.atribute = oddsym;
+        found = 1;
+        break;
     }
   }
 
@@ -656,15 +654,17 @@ runs the lexical program
 @returns status code
 */
 int runLex(char *progName){
+  /*
   FILE *fid = fopen(progName,"r");
   if (!fid){
     printf("Failed to open %s\n", progName);
     return ERROR;
   }
+  */
 
   // read file into a string
   char* code = NULL;
-  code = fileToStr(fid);
+  code = fileNameToStr(progName);
   if(code == NULL){
     return END;
   }
