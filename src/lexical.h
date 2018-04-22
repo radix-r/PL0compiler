@@ -9,9 +9,11 @@
 #define MAX_IDENTIFIER_LEN 11
 
 
+
 typedef struct token{
   char text[MAX_TOKEN_LEN];
   int atribute;
+  int line;
 }token;
 
 typedef struct node{

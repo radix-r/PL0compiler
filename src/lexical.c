@@ -23,7 +23,8 @@ To-Do
 #include "lexical.h"
 
 
-
+// global var to keep track of line number
+int lineNum = 1;
 
 
 /*
@@ -154,7 +155,7 @@ char * fileNameToStr(char * fName){
     buff[length] = '\0';
   }
   else{
-    printf("Failed to open %s.\n", fName);
+    printf("Failed to open %s\n", fName);
     return NULL;
   }
 
@@ -205,6 +206,9 @@ int getToken(char ** codePtr, token * ret){
         }
         else if(isspace(c)){
           state = 23;
+          if(c == '\n' || c == '\r'){
+            lineNum ++;
+          }
         }
         else if(c == '/'){
           state = 25;
@@ -362,8 +366,11 @@ int getToken(char ** codePtr, token * ret){
       case 23: // whitespace
 
         // consume whitespace
-        while(isspace((*codePtr)[current++])){
+        while(isspace(c = (*codePtr)[current++])){
           // eat em up
+          if(c == '\n' || c == '\r'){
+            lineNum ++;
+          }
         }
 
         state = 24;
@@ -396,6 +403,9 @@ int getToken(char ** codePtr, token * ret){
       case 26: // single line comment
         do{
           c=(*codePtr)[current++];
+          if (c == '\n' || c == '\r');{
+            lineNum++;
+          }
         }while(!(c == '\0' || c == '\n' || c == '\r' ));
         /*if(c == '\0' || c == '\001'){ // end of program reached
           found = 1;
@@ -501,7 +511,10 @@ int getToken(char ** codePtr, token * ret){
 
   // token found
   strncpy(token.text, *codePtr, current);
-  token.text[current] = '\0';
+  token.text[current] = '\0';// doubt this is nessisary
+
+  // store line number token was found
+  token.line = lineNum;
 
   chopFront(*codePtr , codeLen, current);
 
@@ -547,6 +560,9 @@ int getToken(char ** codePtr, token * ret){
     else if(strcmp(token.text,"else") == 0){
       token.atribute = elsesym;
     }
+    else if(strcmp(token.text,"int")==0){
+      token.atribute = intsym;
+    }
     else{
       token.atribute = identsym;
     }
@@ -590,7 +606,7 @@ int isEmpty(node * llHead){
 /*
 makes a dynamicly sized list
 
-@returns status
+@returns the head of the list
 */
 node * makeLexTable(char ** codePtr){
   node * ll;

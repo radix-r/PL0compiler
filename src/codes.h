@@ -9,4 +9,4 @@ lessym, leqsym,gtrsym, geqsym, lparentsym,
 rparentsym, commasym, semicolonsym, periodsym, becomessym,
 beginsym, endsym, ifsym, thensym, whilesym,
 dosym, callsym, constsym, varsym, procsym,
-writesym, readsym , elsesym } token_type;
+writesym, readsym , elsesym, intsym} token_type;
