@@ -25,11 +25,11 @@ node errorNode;
 // error flag
 int errorFlag = 0;
 
-
 // where errors are stored. global so I dont have to
 FILE* errorFile;
 
 
+int lexicalLevel = 0;
 
 /*
 // for testing
@@ -77,94 +77,117 @@ int main(int argc, char** argv){
 int block(node * current){
   // const declaration
   if (current->token.atribute == constsym){
+    int atribute = current->token.atribute;
     do {
       // init new const sym
       symbol newSym;
-      newSym.atribute=current->token.atribute;
-      newSym.level = 0;
-      newSym.addr = 0;
+      newSym.atribute=atribute;
+      newSym.level = lexicalLevel;
+      newSym.addr = current->token.line;
 
-      current = getNextLex(current);
+      *current = *getNextLex(current);
       if (current->token.atribute != identsym){
-        error(27);
+        error(27,current->token.line);
         return ERROR;
       }
       // set name
       strcpy(newSym.name, current->token.text);
 
-      current = getNextLex(current);
+      *current = *getNextLex(current);
       if (current->token.atribute != eqsym){
-        error(3);
+        error(3,current->token.line);
         return ERROR;
       }
 
-      current = getNextLex(current);
+      *current = *getNextLex(current);
       if(current->token.atribute != numbersym){
-        error(2);
+        error(2,current->token.line);
         return ERROR;
       }
       // set value
-      newSym.val = (int) strtol(current->token.text, (char **)NULL, 10);
+      newSym.value = (int) strtol(current->token.text, (char **)NULL, 10);
 
       // add to symbol table
       enter(newSym);
 
-
-
-      current = getNextLex(current);
+      *current = *getNextLex(current);
 
     } while(current->token.atribute == commasym);
 
     if(current->token.atribute != semicolonsym){
-      error(5);
+      error(5, current->token.line);
       return ERROR;
     }
 
-    current = getNextLex(current);
+    *current = *getNextLex(current);
   }
 
   // var declaration
-  if(current->token.atribute == intsym){
+  if(current->token.atribute == intsym || current->token.atribute == varsym){
+    int atribute = current->token.atribute;
     do {
+      symbol newSym;
+      newSym.atribute = atribute;
+      newSym.level = lexicalLevel;
+      newSym.addr = current->token.line;
+      newSym.value = 0;
 
-      current = getNextLex(current);
+      *current = *getNextLex(current);
       if (current->token.atribute != identsym){
-        error(27);
+        error(27,current->token.line);
         return ERROR;
       }
 
-      current = getNextLex(current);
+      // coppy text to new symbol
+      strcpy(newSym.name, current->token.text);
+
+
+      *current = *getNextLex(current);
+
+      // add to symbol table
+      enter(newSym);
 
     } while(current->token.atribute == commasym);
 
     if(current->token.atribute != semicolonsym){
-      error(5);
+      error(5,current->token.line);
       return ERROR;
     }
 
-    current = getNextLex(current);
+    *current = *getNextLex(current);
   }
 
   // procedure declaration
-  while(current->token.atribute = procsym){
-    current = getNextLex(current);
+  while(current->token.atribute == procsym){
+    *current = *getNextLex(current);
     if(current->token.atribute != identsym){
-      error(27);
+      error(27, current->token.line);
       return ERROR;
     }
 
-    current = getNextLex(current);
+    // create and add new symbol
+    symbol newSym;
+    newSym.atribute = procsym;
+    strcpy(newSym.name, current->token.text);
+    newSym.level = lexicalLevel;
+    newSym.addr = current->token.line;
+    newSym.value = 0;
+    enter(newSym);
+
+    *current = *getNextLex(current);
     if(current ->token.atribute = semicolonsym){
-      error(5);
+      error(5, current->token.line);
       return ERROR;
     }
 
-    current = getNextLex(current);
+    *current = *getNextLex(current);
+    lexicalLevel++;
     block(current);
-    return ERROR;
+    lexicalLevel--;
+    //return ERROR;
 
     if(current ->token.atribute = semicolonsym){
-      error(5);
+      error(5, current->token.line);
       return ERROR;
     }
   }
@@ -173,10 +196,44 @@ int block(node * current){
   //return OK;
 }
 
+int condition(node * current){
+  // odd
+  if(current->token.atribute == oddsym){
+    *current = *getNextLex(current);
+    expression(current);
+    if(errorFlag){
+      return ERROR;
+    }
+  }
+  else{
+    expression(current);
+    if(errorFlag){
+      return ERROR;
+    }
+
+    if(!(current->token.atribute == eqsym || current->token.atribute ==neqsym ||
+      current->token.atribute ==lessym || current->token.atribute == leqsym ||
+      current->token.atribute == gtrsym || current->token.atribute == geqsym)){
+
+      error(20, current->token.line);
+      return ERROR;
+
+    }
+
+    *current = *getNextLex(current);
+    expression(current);
+    if(errorFlag){
+      return ERROR;
+    }
+  }
+
+  return OK;
+}
+
 /***/
 int enter(symbol newSym){
   if(symbolTableIndex >= MAX_SYMBOL_TABLE_SIZE){
-    error(29);
+    error(29,newSym.addr);
     return ERROR;
   }
   else{
@@ -216,8 +273,12 @@ code meaning for the error function
 27. Identifier expected
 28. := expected.
 29. Max symbol table size exeded
+30. begin must be closed with end
 */
-void error(int eCode){
+void error(int eCode, int line){
+
+  fprintf(errorFile,"Error line %d: ", line);
+
   switch(eCode){
     case 1:
       fprintf(errorFile,"Use = instead of :=.\n");
@@ -303,16 +364,77 @@ void error(int eCode){
     case 28:
       fprintf(errorFile,":= expected.\n");
       break;
+    case 29:
+      fprintf(errorFile, "Max symbol table size exeded.\n");
+      break;
+    case 30:
+      fprintf(errorFile, "begin must be closed with end.\n" );
+      break;
+    case 31:
+      fprintf(errorFile, "if condition must be followed by then.\n" );
+      break;
+    case 32:
+      fprintf(errorFile, "while condition must be followed by do.\n" );
+      break;
+    case 33:
+      fprintf(errorFile, "identifier, (, or number expected.\n" );
+      break;
+
   }
   errorFlag = 1;
 }
 
+/*
++/- chains
+*/
 int expression(node * current){
   if (current->token.atribute == plussym || current->token.atribute == minussym){
-    current = getNextLex(current);
+    *current = *getNextLex(current);
   }
-  //while()
-  // to do
+  term(current);
+  if(errorFlag){
+    return ERROR;
+  }
+
+  while(current->token.atribute == plussym || current->token.atribute == minussym){
+    *current = *getNextLex(current);
+    term(current);
+    if(errorFlag){
+      return ERROR;
+    }
+  }
+
+  return OK;
+}
+
+int factor(node * current){
+  if(current->token.atribute == identsym){
+    *current = *getNextLex(current);
+  }
+  else if(current->token.atribute == numbersym){
+    *current = *getNextLex(current);
+  }
+  else if(current->token.atribute == lparentsym){
+    *current = *getNextLex(current);
+
+    expression(current);
+    if(errorFlag){
+      return ERROR;
+    }
+
+    if(current->token.atribute != rparentsym){
+      error(22,current->token.line);
+      return ERROR;
+    }
+
+    *current = *getNextLex(current);
+
+  }
+
+  else{
+    error(34,current->token.line);
+    return ERROR;
+  }
 
   return OK;
 }
@@ -323,18 +445,22 @@ node * getNextLex(node * current){
   // check if tail sentinal node
   if(next == NULL || next->next == NULL){
     //error unexpected end
-    error(26);
+    error(26, current->token.line);
 
     // create dummy error node
     return &errorNode;
   }
   else{
+    // debug
+    printf("nextTok: %s atribute: %d\n", next->token.text, next->token.atribute);
+
     return next;
   }
 }
 
 int parse(node * lexTable){
   node * current = getNextLex(lexTable);
+  *current = *getNextLex(lexTable);
 
   block(current);
 
@@ -343,7 +469,7 @@ int parse(node * lexTable){
   }
 
   if (current->token.atribute != periodsym){
-    error(9);
+    error(9, current->token.line);
     return ERROR;
   }
 
@@ -351,20 +477,171 @@ int parse(node * lexTable){
 
 }
 
+void printSymbolTable(){
+  int i;
+  for(i = 0; i < symbolTableIndex; i++){
+    symbol sym = symbolTable[i];
+    printf("atribute: %d name: %s value: %d levle: %d addr: %d\n",
+      sym.atribute,sym.name,sym.value,sym.level,sym.addr);
+  }
+}
+
+/**
+
+calls condition, expression, and its self. is called by block.
+
+deals with Assignments, call, begin, if, and while
+
+
+
+*/
 int statement(node * current){
   int status = OK;
+  // Assignment statement
   if(current->token.atribute == identsym){
-    current = getNextLex(current);
+    *current = *getNextLex(current);
     if(current->token.atribute != becomessym){
-      error(28);
+      error(28, current->token.line);
       return ERROR;
     }
-    current = getNextLex(current);
+    *current = *getNextLex(current);
     status = expression(current);
     if(status != OK){
       return status;
     }
   }
 
+  // read
+  else if (current->token.atribute == readsym){
+    *current = *getNextLex(current);
+    // expect an identifier
+    if(current->token.atribute != identsym){
+      error(27, current->token.line);
+      return ERROR;
+    }
+
+    *current = *getNextLex(current);
+    // expect  ;
+    if(current->token.atribute != semicolonsym){
+      error(5, current->token.line);
+      return ERROR;
+    }
+    // generate code to read input here
+
+  }
+
+  // write
+  else if (current->token.atribute == writesym){
+    *current = *getNextLex(current);
+    // expect an identifier
+    if(current->token.atribute != identsym){
+      error(27, current->token.line);
+      return ERROR;
+    }
+
+    *current = *getNextLex(current);
+    // expect  ;
+    if(current->token.atribute != semicolonsym){
+      error(5, current->token.line);
+      return ERROR;
+    }
+    // generate code to write output here
+
+  }
+
+  // procedure call
+  else if(current->token.atribute == callsym){
+    *current = *getNextLex(current);
+    if(current->token.atribute != identsym){
+      error(27, current->token.line);
+      return ERROR;
+    }
+    *current = *getNextLex(current);
+  }
+
+  // begin
+  else if(current->token.atribute == beginsym){
+    *current = *getNextLex(current);
+    status = statement(current);
+    if(errorFlag){
+      return ERROR;
+    }
+    while(current->token.atribute == semicolonsym){
+      *current = *getNextLex(current);
+      statement(current);
+      if(errorFlag){
+        return ERROR;
+      }
+    }
+    if (current->token.atribute != endsym){
+      error(30,current->token.line);
+      return ERROR;
+    }
+    *current = *getNextLex(current);
+  }
+
+  // if statement
+  else if(current->token.atribute == ifsym){
+    *current = *getNextLex(current);
+    condition(current);
+    if(errorFlag){
+      return ERROR;
+    }
+
+    if (current->token.atribute != thensym){
+      error(31,current->token.line);
+      return ERROR;
+    }
+    *current = *getNextLex(current);
+
+    statement(current);
+    if(errorFlag){
+      return ERROR;
+    }
+  }
+
+  // while statement
+  else if(current->token.atribute == whilesym){
+    *current = *getNextLex(current);
+
+    condition(current);
+    if(errorFlag){
+      return ERROR;
+    }
+
+    if(current->token.atribute != dosym){
+      error(33, current->token.line);
+      return ERROR;
+    }
+
+    *current = *getNextLex(current);
+    statement(current);
+    if(errorFlag){
+      return ERROR;
+    }
+
+  }
+
+
   return status;
+}
+
+/**
+multiplication and division
+*/
+int term(node * current){
+  factor(current);
+  if(errorFlag){
+    return ERROR;
+  }
+
+  while(current->token.atribute == multsym || current->token.atribute == slashsym){
+    *current = *getNextLex(current);
+    factor(current);
+    if(errorFlag){
+      return ERROR;
+    }
+  }
+
+  return OK;
 }

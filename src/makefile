@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-I.
+CFLAGS=-I. -g
 #DEPS = codes.h
 objects = main.o parser.o pm0.o lexical.o
 

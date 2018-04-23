@@ -16,7 +16,7 @@ FILE* errorFile;
 int main(int argc, char** argv){
 
   if(argc != 2){
-    printf("Usage: ./parse <PM0 source file>\n" );
+    printf("Usage: ./compile <PM0 source file>\n" );
     return ERROR;
   }
 
@@ -46,5 +46,7 @@ int main(int argc, char** argv){
   lexTable = makeLexTable(&code);
 
   parse(lexTable);
+
+  printSymbolTable();
 
 }
