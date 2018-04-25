@@ -1,5 +1,5 @@
 #include "lexical.h"
-
+#include "pm0.h"
 #include <stdio.h>
 
 #define MAX_SYMBOL_TABLE_SIZE 1000

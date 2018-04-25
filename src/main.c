@@ -21,6 +21,11 @@ FILE* codeFile;
 // where errors are stored. global so I dont have to
 FILE* errorFile;
 
+insrtuction aCode[MAX_CODE_LENGTH];
+int aCodeIndex = 0;
+
+// keeps track of open registers. 0 for open 1 for occupied
+int regStatus [NUMREG];
 
 // booleans for l, a, and v flags
 int l =0;
@@ -29,6 +34,12 @@ int v = 0;
 
 // for testing
 int main(int argc, char** argv) {
+
+  // init regStatus
+  int i;
+  for(i = 0; i < NUMREG; i++){
+    regStatus[i] = 0;
+  }
 
   char *fileName;
   if(argc < 2 || argc > 5){
@@ -91,6 +102,7 @@ int main(int argc, char** argv) {
       printLexTable(lexTable);
     }
     parse(lexTable);
+    destroyLL(lexTable);
   }
 
   fclose(errorFile);
@@ -102,14 +114,20 @@ int main(int argc, char** argv) {
   }
 
   if (a){
-    // print codeFile
+    // print aCode
+    printf("Printing assembly code\n" );
+    printf("---------------------------\n" );
+    int i;
+    for(i = 0; i < aCodeIndex; i++){
+      printf("%d %d %d %d\n", aCode[i].op, aCode[i].r, aCode[i].l, aCode[i].m);
+    }
   }
 
 
-  destroyLL(lexTable);
+
   free(code);
 
 
-  //runVM(codeFile, v);
+  //runVM(aCode, aCodeIndex, v);
   fclose(codeFile);
 }

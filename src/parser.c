@@ -30,7 +30,13 @@ extern FILE* codeFile;
 // where errors are stored. global so I dont have to
 extern FILE* errorFile;
 
+extern insrtuction code[MAX_CODE_LENGTH];
+extern int codeIndex;
+
 int lexicalLevel = 0;
+
+// keeps track of open registers. 0 for open 1 for occupied
+extern int regStatus[NUMREG];
 
 /*
 // for testing
@@ -84,7 +90,7 @@ int block(node * current){
       symbol newSym;
       newSym.atribute=atribute;
       newSym.level = lexicalLevel;
-      newSym.addr = current->token.line;
+      newSym.addr = getNextOpenReg();
 
       *current = *getNextLex(current);
       if (current->token.atribute != identsym){
@@ -130,7 +136,7 @@ int block(node * current){
       symbol newSym;
       newSym.atribute = atribute;
       newSym.level = lexicalLevel;
-      newSym.addr = current->token.line;
+      newSym.addr = getNextOpenReg();
       newSym.value = 0;
 
       *current = *getNextLex(current);
@@ -171,7 +177,8 @@ int block(node * current){
     newSym.atribute = procsym;
     strcpy(newSym.name, current->token.text);
     newSym.level = lexicalLevel;
-    newSym.addr = current->token.line;
+    //newSym.addr = getNextOpenReg();
+    newSym.addr = getNextOpenReg();
     newSym.value = 0;
     enter(newSym);
 
@@ -185,7 +192,9 @@ int block(node * current){
     lexicalLevel++;
     block(current);
     lexicalLevel--;
-    //return ERROR;
+
+    // open any registers used by symbols at lexical levle +1
+    freeReg(lexicalLevel+1);
 
     if(current ->token.atribute = semicolonsym){
       error(5, current->token.line);
@@ -194,7 +203,6 @@ int block(node * current){
   }
 
   return statement(current);
-  //return OK;
 }
 
 int condition(node * current){
@@ -454,12 +462,35 @@ int find(char *ident){
   return -1;
 }
 
+/**
+
+*/
+void freeReg(int lexLevel){
+  int i;
+  for(i = 0; i <symbolTableIndex; i++){
+    if(symbolTable[i].level >= lexLevel){
+      regStatus[symbolTable[i].addr] = 0;
+    }
+  }
+}
 
 /**
 generates an assembly instruction for PM0 and puts it into the codeFile
 */
 void gen(int op, int reg, int l, int m){
-  fprintf(codeFile, "%d %d %d %d\n", op, reg,l,m );
+  //fprintf(codeFile, "%d %d %d %d\n", op, reg,l,m );
+  if(codeIndex >= MAX_CODE_LENGTH){
+    error(34, -1);
+    return;
+  }
+
+  instuction temp;
+  temp.op = op;
+  temp.r = reg;
+  temp.l = l;
+  temp.m = m;
+
+  code[codeIndex++] = temp;
 }
 
 node * getNextLex(node * current){
@@ -479,6 +510,22 @@ node * getNextLex(node * current){
 
     return next;
   }
+}
+
+/*
+returns the index if the lowest open register. returns ERROR and calls erroe()
+if no registersa are open
+*/
+int getNextOpenReg(){
+  int i;
+  for(i = 0; i < NUMREG; i++){
+    if(regStatus[i] == 0){
+      return i;
+    }
+  }
+  error(35, -1);
+  return ERROR;
+
 }
 
 int parse(node * lexTable){
@@ -658,7 +705,7 @@ int symbolAddress(int index){
 }
 
 /**
-returns the leical levle the symbol at given index is on. -1 if index is out of bounds
+returns the lexical levle the symbol at given index is on. -1 if index is out of bounds
 */
 int symbolLevel(int index){
   if(index < 0 || index >= symbolTableIndex){
