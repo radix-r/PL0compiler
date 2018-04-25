@@ -15,19 +15,20 @@ PL/0 program is well formed (syntatically correct)
 #include "parser.h"
 
 // global vars
-symbol symbolTable[MAX_SYMBOL_TABLE_SIZE];
-int symbolTableIndex = 0;
+extern symbol symbolTable[MAX_SYMBOL_TABLE_SIZE];
+extern int symbolTableIndex;
 
 // global error node
-token errorToke;
-node errorNode;
+extern token errorToke;
+extern node errorNode;
 
 // error flag
-int errorFlag = 0;
+extern int errorFlag;
+// where intermidiate code from generated in parser will go
+extern FILE* codeFile;
 
 // where errors are stored. global so I dont have to
-FILE* errorFile;
-
+extern FILE* errorFile;
 
 int lexicalLevel = 0;
 
@@ -439,6 +440,28 @@ int factor(node * current){
   return OK;
 }
 
+/**
+returns the index of the symbol with the given identifier. returns -1 if not found
+*/
+int find(char *ident){
+  int i;
+  for(i = 0; i < symbolTableIndex; i++){
+    if(strcmp(ident, symbolTable[i].name) == 0){
+      return i;
+    }
+  }
+  // not found
+  return -1;
+}
+
+
+/**
+generates an assembly instruction for PM0 and puts it into the codeFile
+*/
+void gen(int op, int reg, int l, int m){
+  fprintf(codeFile, "%d %d %d %d\n", op, reg,l,m );
+}
+
 node * getNextLex(node * current){
   node * next = current->next;
 
@@ -452,7 +475,7 @@ node * getNextLex(node * current){
   }
   else{
     // debug
-    printf("nextTok: %s atribute: %d\n", next->token.text, next->token.atribute);
+    //printf("nextTok: %s atribute: %d\n", next->token.text, next->token.atribute);
 
     return next;
   }
@@ -490,7 +513,7 @@ void printSymbolTable(){
 
 calls condition, expression, and its self. is called by block.
 
-deals with Assignments, call, begin, if, and while
+deals with Assignments, call, begin, if, read, write, and while
 
 
 
@@ -625,6 +648,37 @@ int statement(node * current){
 
   return status;
 }
+
+
+int symbolAddress(int index){
+  if(index < 0 || index >= symbolTableIndex){
+    return -1;
+  }
+  else return symbolTable[index].addr;
+}
+
+/**
+returns the leical levle the symbol at given index is on. -1 if index is out of bounds
+*/
+int symbolLevel(int index){
+  if(index < 0 || index >= symbolTableIndex){
+    return -1;
+  }
+  else return symbolTable[index].level;
+}
+
+/**
+returns the type of the symbol at given index. returns -1 if given index is out
+of bounds
+*/
+int symbolType(int index){
+  if(index < 0 || index >= symbolTableIndex){
+    return -1;
+  }
+  else return symbolTable[index].atribute;
+}
+
+
 
 /**
 multiplication and division

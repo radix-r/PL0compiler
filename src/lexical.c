@@ -125,6 +125,9 @@ void enqueue(node *head, node *tail, token t){
 
 }
 
+
+
+
 /**
 method to read whole input file into buffer
 
@@ -604,7 +607,7 @@ int isEmpty(node * llHead){
 }
 
 /*
-makes a dynamicly sized list
+makes a dynamicly sized linked list of token nodes
 
 @returns the head of the list
 */
