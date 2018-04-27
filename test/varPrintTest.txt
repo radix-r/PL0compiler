@@ -1,0 +1,6 @@
+const ross = 5;
+int num;
+begin
+num := ross;
+write num;
+end.

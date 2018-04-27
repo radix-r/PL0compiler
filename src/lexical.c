@@ -288,6 +288,7 @@ int getToken(char ** codePtr, token * ret){
         else{
           state = 8;
         }
+        break;
 
       case 7: // >=
         token.atribute = geqsym;
@@ -377,7 +378,7 @@ int getToken(char ** codePtr, token * ret){
         }
 
         state = 24;
-        //break;
+        break;
 
       case 24: // end of whitespace
         current--;
@@ -388,6 +389,7 @@ int getToken(char ** codePtr, token * ret){
         //printf("%s\n", *codePtr);
 
         return getToken(codePtr, ret);
+        break;
 
       case 25: // /
         c=(*codePtr)[current++];
@@ -416,6 +418,7 @@ int getToken(char ** codePtr, token * ret){
 
         }*/
         state = 27;
+        break;
 
       case 27: // end of comment
         current;//  needed so compiler doesnt freak out
@@ -424,6 +427,7 @@ int getToken(char ** codePtr, token * ret){
 
         // start from begining
         return getToken(codePtr, ret);
+        break;
 
       case 28: // multi line comment
         while(!(c=(*codePtr)[current++] /*== '\0' || c*/ == '*' )){
@@ -432,6 +436,7 @@ int getToken(char ** codePtr, token * ret){
 
         // '*' reached
         state = 29;
+        break;
 
       case 29: // * encountered in multi line comment
         c = (*codePtr)[current++];

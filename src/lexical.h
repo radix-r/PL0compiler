@@ -5,7 +5,7 @@
 
 
 #define MAX_TOKEN_LEN 20
-#define MAX_NUM_LEN 5
+#define MAX_NUM_LEN  11// number can have a most 11 digits, includs potental "-"
 #define MAX_IDENTIFIER_LEN 11
 
 

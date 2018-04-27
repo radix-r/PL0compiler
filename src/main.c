@@ -21,7 +21,7 @@ FILE* codeFile;
 // where errors are stored. global so I dont have to
 FILE* errorFile;
 
-insrtuction aCode[MAX_CODE_LENGTH];
+instruction aCode[MAX_CODE_LENGTH];
 int aCodeIndex = 0;
 
 // keeps track of open registers. 0 for open 1 for occupied
@@ -100,6 +100,7 @@ int main(int argc, char** argv) {
   if (lexTable){
     if(l){
       printLexTable(lexTable);
+      printf("\n");
     }
     parse(lexTable);
     destroyLL(lexTable);
@@ -121,6 +122,7 @@ int main(int argc, char** argv) {
     for(i = 0; i < aCodeIndex; i++){
       printf("%d %d %d %d\n", aCode[i].op, aCode[i].r, aCode[i].l, aCode[i].m);
     }
+    printf("\n");
   }
 
 
@@ -128,6 +130,6 @@ int main(int argc, char** argv) {
   free(code);
 
 
-  //runVM(aCode, aCodeIndex, v);
+  runVM(aCode, aCodeIndex, v);
   fclose(codeFile);
 }

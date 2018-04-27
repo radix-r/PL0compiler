@@ -11,7 +11,7 @@ typedef struct symbol{
   int value; // number (ASCII value)
   int level; // L level
   int addr; // M address
-} symbol;
+}symbol;
 
 
 
@@ -25,8 +25,10 @@ int enter(symbol newSym);
 int expression(node *current);
 int factor(node * current);
 int find(char *ident);
+void freeReg(int lexLevel);
 void gen(int op, int reg, int l, int m);
 node * getNextLex(node * current);
+int getNextOpenReg();
 int parse(node * lexTable);
 void printSymbolTable();
 int statement(node *current);

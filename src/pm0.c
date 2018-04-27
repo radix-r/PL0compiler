@@ -88,7 +88,7 @@ void execute(instruction ir, int *spPtr, int *bpPtr, int *pcPtr, int *lexPtr,
         *haultPtr = 1;
         break;
       }
-      stack[*spPtr+1] = 0; // space to return value;
+      stack[*spPtr+1] = 0; // space to return value to
       stack[*spPtr+2] = base(ir.l, *bpPtr, stack); //static link
       stack[*spPtr+3] = *bpPtr; // dynamic link
       stack[*spPtr+4] = *pcPtr; // return address
@@ -269,7 +269,7 @@ initilizes the vm
 
 @parameter fid, pointer to a file where input will be read from
 */
-void init(/*FILE *fid, instruction *code,int *codeLenPtr,*/ int* bpPtr, instruction *irPtr, int *pcPtr, int *spPtr, int *lexPtr, int *reg, int *stack, /*char ops[NUM_OP][CMD_LEN]*/){
+void init(/*FILE *fid, instruction *code,int *codeLenPtr,*/ int* bpPtr, instruction *irPtr, int *pcPtr, int *spPtr, int *lexPtr, int *reg, int *stack/*, char ops[NUM_OP][CMD_LEN]*/){
   // dummy instruction to set ir to 0
   instruction dummy;
   dummy.op = 0;
@@ -391,7 +391,7 @@ void printStackTrace(char ops[NUM_OP][CMD_LEN], int *stack, instruction ir, int 
 
 /**
 */
-void runVM(instuction code[], int Len int v){
+void runVM(instruction code[], int len, int v){
   //instruction code[MAX_CODE_LENGTH];
   int codeLen=len-1; // where the number of lines of code will be recorded
   int codeLine = 0; // current line in code[] we are at

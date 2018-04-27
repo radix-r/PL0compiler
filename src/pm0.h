@@ -35,10 +35,10 @@ void execute(instruction ir, int *spPtr, int *bpPtr, int *pcPtr, int *lexPtr,
 int getLine( char*, size_t, FILE*);
 int fetch(int*, instruction*, int*,int, int*, instruction*);
 FILE *fileStuff(char**);
-void init(FILE *fid, instruction *code,int *codeLenPtr, int* bpPtr, instruction *irPtr, int *pcPtr, int *spPtr, int *lexPtr, int *reg, int *stack, char ops[NUM_OP][CMD_LEN]);
+void init(/*FILE *fid, instruction *code,int *codeLenPtr,*/ int* bpPtr, instruction *irPtr, int *pcPtr, int *spPtr, int *lexPtr, int *reg, int *stack/*, char ops[NUM_OP][CMD_LEN]*/);
 void printReg(int*);
 void printStack(int , int , int* , int );
 void printStackTrace(char [NUM_OP][CMD_LEN], int *, instruction , int , int , int , int );
 //void printStrArray(char **, int);
-void runVM(FILE *fid);
+void runVM(instruction code[], int len, int v);
 char ** tokenize(const char *);

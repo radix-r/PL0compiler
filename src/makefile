@@ -11,9 +11,9 @@ compile : $(objects)
 	$(CC) -o compile $(objects) $(CFLAGS)
 
 main.o lexical.o parser.o:  codes.h
-lexical.o parser.o : lexical.h
+lexical.o parser.o main.o: lexical.h
 parser.o : parser.h
-cdpm0.o :
+pm0.o parser.o main.o: pm0.h
 
 .PHONY : clean
 clean :

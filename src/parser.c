@@ -30,10 +30,11 @@ extern FILE* codeFile;
 // where errors are stored. global so I dont have to
 extern FILE* errorFile;
 
-extern insrtuction code[MAX_CODE_LENGTH];
-extern int codeIndex;
+extern instruction aCode[MAX_CODE_LENGTH];
+extern int aCodeIndex;
 
 int lexicalLevel = 0;
+int sp[MAX_LEXI_LEVLES];
 
 // keeps track of open registers. 0 for open 1 for occupied
 extern int regStatus[NUMREG];
@@ -90,7 +91,11 @@ int block(node * current){
       symbol newSym;
       newSym.atribute=atribute;
       newSym.level = lexicalLevel;
-      newSym.addr = getNextOpenReg();
+
+      //make room on stack
+      newSym.addr = sp[lexicalLevel]++;
+      gen(inc, 0 ,0,1);
+
 
       *current = *getNextLex(current);
       if (current->token.atribute != identsym){
@@ -117,6 +122,15 @@ int block(node * current){
       // add to symbol table
       enter(newSym);
 
+      // gen the code
+      // store number in register
+      int r = getNextOpenReg();
+      // set reg to occupied
+      regStatus[r] = 1;
+      gen(lit, r, 0, newSym.value);
+      gen(sto, r, 0, newSym.addr);
+      regStatus[r] = 0;
+
       *current = *getNextLex(current);
 
     } while(current->token.atribute == commasym);
@@ -136,7 +150,8 @@ int block(node * current){
       symbol newSym;
       newSym.atribute = atribute;
       newSym.level = lexicalLevel;
-      newSym.addr = getNextOpenReg();
+      newSym.addr = sp[lexicalLevel]++;
+      gen(inc,0,0,1);
       newSym.value = 0;
 
       *current = *getNextLex(current);
@@ -153,6 +168,7 @@ int block(node * current){
 
       // add to symbol table
       enter(newSym);
+
 
     } while(current->token.atribute == commasym);
 
@@ -178,7 +194,8 @@ int block(node * current){
     strcpy(newSym.name, current->token.text);
     newSym.level = lexicalLevel;
     //newSym.addr = getNextOpenReg();
-    newSym.addr = getNextOpenReg();
+    newSym.addr = sp[lexicalLevel]++;
+    gen(inc,0,0,1);
     newSym.value = 0;
     enter(newSym);
 
@@ -189,12 +206,25 @@ int block(node * current){
     }
 
     *current = *getNextLex(current);
+
+    // jump over to start
+    int jumpLoc = aCodeIndex;
+    gen(jmp, 0,0,-1);
+
     lexicalLevel++;
+
+    // make sure max leixal level not exceeded
+    if(lexicalLevel >= MAX_LEXI_LEVLES){
+      error(37,current->token.line);
+      return ERROR;
+    }
+
     block(current);
     lexicalLevel--;
 
+    aCode[jumpLoc].m = aCodeIndex;
     // open any registers used by symbols at lexical levle +1
-    freeReg(lexicalLevel+1);
+    //freeReg(lexicalLevel+1);
 
     if(current ->token.atribute = semicolonsym){
       error(5, current->token.line);
@@ -209,16 +239,26 @@ int condition(node * current){
   // odd
   if(current->token.atribute == oddsym){
     *current = *getNextLex(current);
+
+    // where result of expression will be stored
+    int r1 = getNextOpenReg();
     expression(current);
     if(errorFlag){
       return ERROR;
     }
+
+    //check if content of r1 is odd
+    gen(odd, r1,r1,0);
   }
   else{
+    int r1 = getNextOpenReg();
     expression(current);
     if(errorFlag){
       return ERROR;
     }
+
+    //close the reg
+    regStatus[r1] = 1;
 
     if(!(current->token.atribute == eqsym || current->token.atribute ==neqsym ||
       current->token.atribute ==lessym || current->token.atribute == leqsym ||
@@ -228,12 +268,21 @@ int condition(node * current){
       return ERROR;
 
     }
+    // because they are in the same order
+    int op = (current->token.atribute) - eqsym + eql;
 
     *current = *getNextLex(current);
+    int r2 = getNextOpenReg();
     expression(current);
     if(errorFlag){
       return ERROR;
     }
+
+    // compare results and put it in r1
+    gen(op,r1, r1, r2);
+
+    // reopen register
+    regStatus[r1] = 0;
   }
 
   return OK;
@@ -397,36 +446,89 @@ void error(int eCode, int line){
 +/- chains
 */
 int expression(node * current){
-  if (current->token.atribute == plussym || current->token.atribute == minussym){
+  int negate = 0;
+  if (negate =current->token.atribute == plussym || current->token.atribute == minussym){
+
     *current = *getNextLex(current);
   }
+
+  // remember to negater if minus
+  int r1 = getNextOpenReg();
   term(current);
   if(errorFlag){
     return ERROR;
   }
 
-  while(current->token.atribute == plussym || current->token.atribute == minussym){
+  if (negate){
+    gen(neg, r1,r1,0);
+  }
+
+  // close register b/c we are about to start working with more numbers
+  regStatus[r1]=1;
+
+  int doAdd;
+  while( (doAdd = current->token.atribute == plussym) || current->token.atribute == minussym){
+
     *current = *getNextLex(current);
+    int r2 = getNextOpenReg();
     term(current);
     if(errorFlag){
       return ERROR;
     }
+
+    // add or subtract new term
+    if(doAdd){
+     gen(add, r1,r1,r2);
+    }
+    else{
+      gen(sub, r1,r1,r2);
+    }
+
   }
+  regStatus[r1] = 0;
 
   return OK;
 }
 
 int factor(node * current){
+
+  // variable name
   if(current->token.atribute == identsym){
+    // find where var is stored
+    int index = find(current->token.text);
+    if(index == -1){
+      error(11, current->token.line);
+      return ERROR;
+    }
+    int type = symbolType(index);
+    if (type == varsym || type == intsym){
+      // get val and load into reg
+      gen(lod,getNextOpenReg(),0,symbolTable[index].addr);
+    }
+    else if (type == constsym){
+      gen(lit,getNextOpenReg(), 0,  symbolTable[index].value);
+    }
+    else{
+      error(36, current->token.line);
+      return ERROR;
+    }
+
     *current = *getNextLex(current);
   }
+
+  // just a number
   else if(current->token.atribute == numbersym){
+    gen(lit, getNextOpenReg(),0, (int) strtol(current->token.text, (char **)NULL, 10) );
     *current = *getNextLex(current);
+
   }
+
+  // parenthesis
   else if(current->token.atribute == lparentsym){
     *current = *getNextLex(current);
 
     expression(current);
+
     if(errorFlag){
       return ERROR;
     }
@@ -441,7 +543,7 @@ int factor(node * current){
   }
 
   else{
-    error(34,current->token.line);
+    error(33,current->token.line);
     return ERROR;
   }
 
@@ -479,18 +581,18 @@ generates an assembly instruction for PM0 and puts it into the codeFile
 */
 void gen(int op, int reg, int l, int m){
   //fprintf(codeFile, "%d %d %d %d\n", op, reg,l,m );
-  if(codeIndex >= MAX_CODE_LENGTH){
+  if(aCodeIndex >= MAX_CODE_LENGTH){
     error(34, -1);
     return;
   }
 
-  instuction temp;
+  instruction temp;
   temp.op = op;
   temp.r = reg;
   temp.l = l;
   temp.m = m;
 
-  code[codeIndex++] = temp;
+  aCode[aCodeIndex++] = temp;
 }
 
 node * getNextLex(node * current){
@@ -532,6 +634,10 @@ int parse(node * lexTable){
   node * current = getNextLex(lexTable);
   *current = *getNextLex(lexTable);
 
+  // create space for activation fraem
+  gen(inc, 0, 0, 4);
+  sp[lexicalLevel] = 4;
+
   block(current);
 
   if (errorFlag){
@@ -543,6 +649,8 @@ int parse(node * lexTable){
     return ERROR;
   }
 
+  // end of Program
+  gen(sio, 0,0,3);
   return OK;
 
 }
@@ -569,16 +677,31 @@ int statement(node * current){
   int status = OK;
   // Assignment statement
   if(current->token.atribute == identsym){
+    // location in symbol table of current identifier
+    int loc = find(current->token.text);
+    // make sure identifier is declared
+    if (loc == -1){
+      error(11, current->token.line);
+      return ERROR;
+    }
+
+
     *current = *getNextLex(current);
     if(current->token.atribute != becomessym){
       error(28, current->token.line);
       return ERROR;
     }
     *current = *getNextLex(current);
+
+    // location where value of expression will eventualy be stored. dont close here
+    int r = getNextOpenReg();
+
     status = expression(current);
     if(status != OK){
       return status;
     }
+
+    gen(sto, r, symbolTable[loc].level , symbolTable[loc].addr);
   }
 
   // read
@@ -590,6 +713,13 @@ int statement(node * current){
       return ERROR;
     }
 
+    // get address and lexical level of identifier
+    int index = find(current->token.text);
+    int l = symbolTable[index].level;
+    int addr = symbolTable[index].addr;
+
+
+
     *current = *getNextLex(current);
     // expect  ;
     if(current->token.atribute != semicolonsym){
@@ -597,7 +727,8 @@ int statement(node * current){
       return ERROR;
     }
     // generate code to read input here
-
+    gen(sio, getNextOpenReg(), 0, 2);
+    gen(sto, getNextOpenReg(),l,addr);
   }
 
   // write
@@ -608,6 +739,8 @@ int statement(node * current){
       error(27, current->token.line);
       return ERROR;
     }
+    // find symbol with identifier
+    int symIndex = find(current->token.text);
 
     *current = *getNextLex(current);
     // expect  ;
@@ -616,7 +749,12 @@ int statement(node * current){
       return ERROR;
     }
     // generate code to write output here
-
+    // put what is at identifiers address into register
+    int r = getNextOpenReg();
+    regStatus[r] =1;
+    gen(lod, r, symbolTable[symIndex].level, symbolTable[symIndex].addr);
+    gen(sio, r, 0, 1);
+    regStatus[r]= 0;
   }
 
   // procedure call
@@ -626,6 +764,18 @@ int statement(node * current){
       error(27, current->token.line);
       return ERROR;
     }
+
+    // location in symbol table of current identifier
+    int loc = find(current->token.text);
+    // make sure identifier is declared
+    if (loc == -1){
+      error(11, current->token.line);
+      return ERROR;
+    }
+
+    gen(cal, 0, symbolTable[loc].level , symbolTable[loc].addr);
+
+
     *current = *getNextLex(current);
   }
 
@@ -653,10 +803,16 @@ int statement(node * current){
   // if statement
   else if(current->token.atribute == ifsym){
     *current = *getNextLex(current);
+    // location where result of condition will be stored
+    int r1 = getNextOpenReg();
     condition(current);
     if(errorFlag){
       return ERROR;
     }
+
+    // -1 is a placeholder
+    int jpLoc = aCodeIndex;
+    gen(jpc, r1, 0, -1);
 
     if (current->token.atribute != thensym){
       error(31,current->token.line);
@@ -668,16 +824,28 @@ int statement(node * current){
     if(errorFlag){
       return ERROR;
     }
+
+    // set jump value
+    aCode[jpLoc].m = aCodeIndex;
   }
 
   // while statement
   else if(current->token.atribute == whilesym){
     *current = *getNextLex(current);
 
+    // where result of condition will be stored
+    int r1 = getNextOpenReg();
+    //location to jump back to
+    int loopLoc = aCodeIndex;
+
     condition(current);
     if(errorFlag){
       return ERROR;
     }
+
+    int jpcLoc = aCodeIndex;
+    // -1 tepm
+    gen(jpc, r1, 0,-1);
 
     if(current->token.atribute != dosym){
       error(33, current->token.line);
@@ -689,6 +857,12 @@ int statement(node * current){
     if(errorFlag){
       return ERROR;
     }
+
+    // jump back to conditional checks
+    gen(jmp, 0,0, loopLoc);
+
+    // set location to jump to if condition is false
+    aCode[jpcLoc].m = aCodeIndex;
 
   }
 
@@ -736,13 +910,27 @@ int term(node * current){
     return ERROR;
   }
 
-  while(current->token.atribute == multsym || current->token.atribute == slashsym){
+  int r1 = getNextOpenReg();
+  regStatus[r1] = 1;
+
+  int doMult;
+  while((doMult = current->token.atribute == multsym) || current->token.atribute == slashsym){
     *current = *getNextLex(current);
     factor(current);
     if(errorFlag){
       return ERROR;
     }
+
+    int r2 = getNextOpenReg();
+    // mult or divide
+    if(doMult){
+      gen(mult, r1,r1, r2);
+    }
+    else{
+      gen(divi, r1,r1,r2);
+    }
   }
+  regStatus[r1] = 0;
 
   return OK;
 }

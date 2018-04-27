@@ -33,3 +33,6 @@ code meaning for the error function
 32. while condition must be followed by do
 33. identifier, (, or number expected.
 34. Max code length exceeded
+35. All registers in use, cannot give variable address.
+36. Constant or variable expected.
+37. Max lexical depth exceeded. 

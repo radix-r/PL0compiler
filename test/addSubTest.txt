@@ -1,0 +1,6 @@
+const ross = 14;
+int num;
+begin
+num := 13 +ross-111;
+write num;
+end.
