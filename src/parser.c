@@ -327,11 +327,18 @@ code meaning for the error function
 23. The preceding factor cannot begin with this symbol.
 24. An expression cannot begin with this symbol.
 25. This number is too large.
-26. Unexpected end of file/lexem table
+26. Unexpected end of file/lexeme table
 27. Identifier expected
 28. := expected.
-29. Max symbol table size exeded
+29. Max symbol table size exceeded
 30. begin must be closed with end
+31. if condition must be followed by then
+32. while condition must be followed by do
+33. identifier, (, or number expected.
+34. Max code length exceeded
+35. All registers in use, cannot give variable address.
+36. Constant or variable expected.
+37. Max lexical depth exceeded.
 */
 void error(int eCode, int line){
 
@@ -437,6 +444,19 @@ void error(int eCode, int line){
     case 33:
       fprintf(errorFile, "identifier, (, or number expected.\n" );
       break;
+    case 34:
+      fprintf(errorFile, "Max code length exceeded.\n" );
+      break;
+    case 35;
+      fprintf(errorFile, "All registers in use.\n" );
+      break;
+    case 36:
+      fprintf(errorFile, "Constant or variable expected.\n" );
+      break;
+    case 37:
+      fprintf(errorFile, "Max lexical depth exceeded.\n" );
+      break;
+
 
   }
   errorFlag = 1;
