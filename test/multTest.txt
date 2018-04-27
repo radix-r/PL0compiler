@@ -2,5 +2,5 @@ const ross = 111;
 int num;
 begin
 num := 13*111 - ross;
-write num;
+write num
 end.

@@ -32,6 +32,8 @@ int l =0;
 int a=0;
 int v = 0;
 
+void printFile(char * fName);
+
 // for testing
 int main(int argc, char** argv) {
 
@@ -111,6 +113,9 @@ int main(int argc, char** argv) {
   //printSymbolTable();
   if (errorFlag){
     //print errorsfile
+
+    printFile("errors.txt");
+
     return ERROR;
   }
 
@@ -132,4 +137,15 @@ int main(int argc, char** argv) {
 
   runVM(aCode, aCodeIndex, v);
   fclose(codeFile);
+}
+
+void printFile(char * fName){
+  int c;
+  FILE *file;
+    file = fopen(fName, "r");
+    if (file) {
+        while ((c = getc(file)) != EOF)
+            putchar(c);
+        fclose(file);
+    }
 }
