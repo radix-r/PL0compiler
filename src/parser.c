@@ -447,7 +447,7 @@ void error(int eCode, int line){
     case 34:
       fprintf(errorFile, "Max code length exceeded.\n" );
       break;
-    case 35;
+    case 35:
       fprintf(errorFile, "All registers in use.\n" );
       break;
     case 36:
